@@ -1,0 +1,11 @@
+address 127.0.0.1:3060
+
+route /test
+PL http://google.pl
+TR http://google.ru
+DEFAULT http://google.com
+
+route /test2
+PL http://yandex.ru
+RU http://pornhub.com
+DEFAULT http://google.ru
