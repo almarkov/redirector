@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -54,20 +55,20 @@ func ReadConfig() Config {
 	file.Close()
 
 	var c Config
-	var currrentroute int
+	var cr int
 	c.routes = make([]Route, 10)
-	currrentroute = -1
+	cr = -1
 	for _, eachline := range txtlines {
 		if len(eachline) > 0 {
 			line := strings.Split(eachline, " ")
 			if line[0] == "address" {
 				c.address = line[1]
 			} else if line[0] == "route" {
-				currrentroute++
-				c.routes[currrentroute].maps = make(map[string]string)
-				c.routes[currrentroute].name = line[1]
+				cr++
+				c.routes[cr].maps = make(map[string]string)
+				c.routes[cr].name = line[1]
 			} else {
-				c.routes[currrentroute].maps[line[0]] = line[1]
+				c.routes[cr].maps[line[0]] = line[1]
 			}
 		}
 	}
@@ -77,17 +78,19 @@ func ReadConfig() Config {
 
 func getip(r *http.Request) string {
 	forwarded := r.Header.Get("X-FORWARDED-FOR")
-	if forwarded != "" {
-		return forwarded
+	if forwarded == "" {
+		forwarded = r.RemoteAddr
 	}
-	return r.RemoteAddr
+	host, _, err := net.SplitHostPort(forwarded)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ip fetch error: %v\n", err)
+	}
+	return host
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 
 	clientIP := getip(r)
-	res := strings.Split(clientIP, ":")
-	clientIP = res[0]
 
 	// russian ip for test
 	if clientIP == "127.0.0.1" {
