@@ -1,72 +1,69 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	// "html/template"
-	"bufio"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 )
 
-type IPInfo2 struct {
-	country     string
-	countryCode string
-	query       string
-}
-
+// Route - redirection route
 type Route struct {
-	name    string
-	maps    map[string]string
+	name string
+	maps map[string]string
 }
 
+// Config - application configuration
 type Config struct {
 	address string
 	routes  []Route
 }
 
 var config Config
+
 func main() {
 	config = ReadConfig()
 	for _, element := range config.routes {
-		if element.name != ""  {
+		if element.name != "" {
 			http.HandleFunc(element.name, handler)
 		}
 	}
 	log.Fatal(http.ListenAndServe(config.address, nil))
 }
 
-func ReadConfig() Config{
-	
+// ReadConfig - read aplication configuration
+func ReadConfig() Config {
+
 	file, err := os.Open("config")
 	if err != nil {
 		log.Fatalf("failed opening file: %s", err)
 	}
- 
+
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	var txtlines []string
- 
+
 	for scanner.Scan() {
 		txtlines = append(txtlines, scanner.Text())
 	}
- 
+
 	file.Close()
- 
- 	var c Config
- 	var currrentroute int
- 	c.routes = make([]Route, 10)
- 	currrentroute = -1
+
+	var c Config
+	var currrentroute int
+	c.routes = make([]Route, 10)
+	currrentroute = -1
 	for _, eachline := range txtlines {
 		if len(eachline) > 0 {
 			line := strings.Split(eachline, " ")
 			if line[0] == "address" {
 				c.address = line[1]
 			} else if line[0] == "route" {
-				currrentroute += 1
+				currrentroute++
 				c.routes[currrentroute].maps = make(map[string]string)
 				c.routes[currrentroute].name = line[1]
 			} else {
@@ -104,7 +101,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
-	
+
 	var f interface{}
 
 	err = json.Unmarshal(b, &f)
@@ -118,7 +115,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	var redirectstr string
 	for _, route := range config.routes {
-		if (route.name == r.URL.Path) {
+		if route.name == r.URL.Path {
 			redirectstr = route.maps[s]
 			if redirectstr == "" {
 				redirectstr = route.maps["DEFAULT"]
